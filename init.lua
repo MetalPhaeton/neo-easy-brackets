@@ -226,14 +226,14 @@ function M:map_insert()
     return self
 end
 
-local function get_last_col(row_num, col_num)
+local function get_succ_col(row_num, col_num)
     local line = vim.fn.getline(row_num)
-    local idx = vim.fn.byteidx(line, vim.fn.charidx(line, col_num))
+    local char_idx = vim.fn.charidx(line, col_num)
 
-    if idx == col_num then
-        return col_num
+    if char_idx == col_num then
+        return col_num + 1
     else
-        return col_num + 2
+        return vim.fn.byteidx(line, char_idx + 1) + 1
     end
 end
 
@@ -246,7 +246,7 @@ local function enclose_with(ch)
 
     local pos_e = vim.fn.getpos("'>")
     local row_e = pos_e[2]
-    local col_e = get_last_col(row_e, pos_e[3])
+    local succ_col = get_succ_col(row_e, pos_e[3])
 
     if vim.fn.visualmode() == "V" then
         vim.fn.setline(row_s, ch .. line_s)
@@ -265,19 +265,19 @@ local function enclose_with(ch)
         )
 
         if row_s == row_e then
-            col_e = col_e + 1
+            succ_col = succ_col + 1
         end
 
         local line_e = vim.fn.getline(row_e)
         ch = ch_pair_table[ch]
         vim.fn.setline(
             row_e,
-            line_e:sub(1, col_e) .. ch .. line_e:sub(col_e + 1)
+            line_e:sub(1, succ_col - 1) .. ch .. line_e:sub(succ_col)
         )
 
         vim.fn.setpos(".", pos_s)
         vim.fn.execute("normal v")
-        pos_e[3] = col_e + 1
+        pos_e[3] = succ_col
         vim.fn.setpos(".", pos_e)
     end
 end
