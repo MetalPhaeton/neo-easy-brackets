@@ -26,7 +26,7 @@ NeoEasyBracket = {}
 
 local ch_stk = {}
 
-local left_code = vim.api.nvim_replace_termcodes("<Left>", true, true, true);
+local left_code = "<Left>";
 local input_text_table = {
     ["("] = "()" .. left_code,
     ["{"] = "{}" .. left_code,
@@ -62,7 +62,7 @@ local function handle_open(ch)
     return input_text_table[ch]
 end
 
-local right_code = vim.api.nvim_replace_termcodes("<Right>", true, true, true);
+local right_code = "<Right>";
 local function handle_close(ch)
     local pos = vim.fn.getcurpos()
     local row = pos[2]
@@ -86,9 +86,6 @@ local function handle_quote(ch)
     end
 end
 
-local bs_code = vim.api.nvim_replace_termcodes("<BS>", true, true, true);
-local del_code = vim.api.nvim_replace_termcodes("<Del>", true, true, true);
-local del_and_bs_code = del_code .. bs_code;
 function NeoEasyBracket.handle_backspace()
     local pos = vim.fn.getcurpos()
     local row = pos[2]
@@ -99,18 +96,17 @@ function NeoEasyBracket.handle_backspace()
 
     if (#ch_stk > 0) and (ch_pair_table[prev_ch] == ch_stk[#ch_stk]) then
         table.remove(ch_stk)
-        return del_and_bs_code
+        return "<Del><BS>"
     else
-        return bs_code
+        return "<BS>"
     end
 end
 
-local esc_code = vim.api.nvim_replace_termcodes("<ESC>", true, true, true);
 function NeoEasyBracket.handle_esc()
-    for i = 1, #ch_stk do
+    for i in pairs(ch_stk) do
         ch_stk[i] = nil
     end
-    return esc_code
+    return "<ESC>"
 end
 
 
@@ -129,70 +125,70 @@ function NeoEasyBracket.handle_double_quote() return handle_quote('"') end
 function NeoEasyBracket.handle_back_quote() return handle_quote("`") end
 
 function M:map_insert()
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "(",
         "luaeval('NeoEasyBracket.handle_open_parenth()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         ")",
         "luaeval('NeoEasyBracket.handle_closing_parenth()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "{",
         "luaeval('NeoEasyBracket.handle_open_brace()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "}",
         "luaeval('NeoEasyBracket.handle_closing_brace()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "[",
         "luaeval('NeoEasyBracket.handle_open_brcket()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "]",
         "luaeval('NeoEasyBracket.handle_closing_bracket()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "<",
         "luaeval('NeoEasyBracket.handle_lt()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         ">",
         "luaeval('NeoEasyBracket.handle_gt()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "'",
         "luaeval('NeoEasyBracket.handle_single_quote()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         '"',
         "luaeval('NeoEasyBracket.handle_double_quote()')",
@@ -206,21 +202,21 @@ function M:map_insert()
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "<BS>",
         "luaeval('NeoEasyBracket.handle_backspace()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "<C-h>",
         "luaeval('NeoEasyBracket.handle_backspace()')",
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "<ESC>",
         "luaeval('NeoEasyBracket.handle_esc()')",
@@ -230,17 +226,29 @@ function M:map_insert()
     return self
 end
 
+local function get_last_col(row_num, col_num)
+    local line = vim.fn.getline(row_num)
+    local idx = vim.fn.byteidx(line, vim.fn.charidx(line, col_num))
+
+    if idx == col_num then
+        return col_num
+    else
+        return col_num + 2
+    end
+end
+
 local function enclose_with(ch)
     local pos_s = vim.fn.getpos("'<")
     local row_s = pos_s[2]
     local col_s = pos_s[3]
 
+    local line_s = vim.fn.getline(row_s)
+
     local pos_e = vim.fn.getpos("'>")
     local row_e = pos_e[2]
-    local col_e = pos_e[3]
+    local col_e = get_last_col(row_e, pos_e[3])
 
     if vim.fn.visualmode() == "V" then
-        local line_s = vim.fn.getline(row_s)
         vim.fn.setline(row_s, ch .. line_s)
 
         local line_e = vim.fn.getline(row_e)
@@ -251,7 +259,6 @@ local function enclose_with(ch)
         vim.fn.execute("normal V")
         vim.fn.setpos(".", pos_e)
     else
-        local line_s = vim.fn.getline(row_s)
         vim.fn.setline(
             row_s,
             line_s:sub(1, col_s - 1) .. ch .. line_s:sub(col_s)
@@ -289,49 +296,49 @@ function NeoEasyBracket.enclose_with_back_quote()
     return enclose_with("`")
 end
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithParenth)",
     ":<C-u>lua NeoEasyBracket.enclose_with_parenth()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithBrace)",
     ":<C-u>lua NeoEasyBracket.enclose_with_brace()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithBracket)",
     ":<C-u>lua NeoEasyBracket.enclose_with_bracket()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithLT)",
     ":<C-u>lua NeoEasyBracket.enclose_with_lt()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithSingleQuote)",
     ":<C-u>lua NeoEasyBracket.enclose_with_single_quote()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithDoubleQuote)",
     ":<C-u>lua NeoEasyBracket.enclose_with_double_quote()<CR>",
     {silent = true, noremap = true}
 )
 
-vim.api.nvim_set_keymap(
+vim.keymap.set(
     "v",
     "<Plug>(NeoEasyBracketEncloseWithBackQuote)",
     ":<C-u>lua NeoEasyBracket.enclose_with_back_quote()<CR>",
@@ -339,49 +346,49 @@ vim.api.nvim_set_keymap(
 )
 
 function M:map_visual()
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "(",
         "<Plug>(NeoEasyBracketEncloseWithParenth)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "{",
         "<Plug>(NeoEasyBracketEncloseWithBrace)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "g[",
         "<Plug>(NeoEasyBracketEncloseWithBracket)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "g<",
         "<Plug>(NeoEasyBracketEncloseWithLT)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "'",
         "<Plug>(NeoEasyBracketEncloseWithSingleQuote)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "\"",
         "<Plug>(NeoEasyBracketEncloseWithDoubleQuote)",
         {}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "v",
         "`",
         "<Plug>(NeoEasyBracketEncloseWithBackQuote)",
