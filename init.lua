@@ -195,7 +195,7 @@ function M:map_insert()
         {noremap = true, expr = true}
     )
 
-    vim.api.nvim_set_keymap(
+    vim.keymap.set(
         "i",
         "`",
         "luaeval('NeoEasyBracket.handle_back_quote()')",
