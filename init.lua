@@ -229,8 +229,9 @@ end
 local function get_succ_col(row_num, col_num)
     local line = vim.fn.getline(row_num)
     local char_idx = vim.fn.charidx(line, col_num)
+    local byte_idx = vim.fn.byteidx(line, char_idx)
 
-    if char_idx == col_num then
+    if col_num == byte_idx then
         return col_num + 1
     else
         return vim.fn.byteidx(line, char_idx + 1) + 1
